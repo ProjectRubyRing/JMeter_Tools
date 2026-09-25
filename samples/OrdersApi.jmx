@@ -1,0 +1,571 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="OrdersApi 1.0.0 - API疎通確認（OpenAPI 3.0.3 から自動生成）">
+      <stringProp name="TestPlan.comments">このテスト計画は openapi2jmx 1.0.0 が OpenAPI 定義ファイルから自動生成しました（Apache JMeter 5.6.3 対応）。
+入力ファイル : orders-api.openapi.json（OpenAPI 3.0.3 / OrdersApi 1.0.0）
+リクエスト数 : 5 件（各 API を 1 回ずつ呼び出す最小構成）
+テストデータ : OpenAPI のデータ型定義からランダム生成（乱数シード 20260926。同じシードを指定すると同じデータを再生成できます）
+既定の接続先 : http://localhost:8080（実行時に -Jprotocol= -Jhost= -Jport= -JbasePath= で上書きできます）
+共通ヘッダ   : X-API-KEY（ユーザー定義変数 API_KEY の値。実行時に -JapiKey= で上書きできます）
+結果（JTL）  : RESULT_DIR/OrdersApi_RUN_ID.jtl（XML 形式・リクエスト/レスポンス詳細付き。JMeter GUI のリスナーで開けます）
+結果（ログ） : jmeter.log（CLI 実行時は -j で指定したファイル）に [API-RESULT] 行を 1 リクエスト 1 行で出力します。</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="PROTOCOL" elementType="Argument">
+            <stringProp name="Argument.name">PROTOCOL</stringProp>
+            <stringProp name="Argument.value">${__P(protocol,http)}</stringProp>
+            <stringProp name="Argument.desc">接続プロトコル（http / https）。実行時に -Jprotocol=https のように上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="HOST" elementType="Argument">
+            <stringProp name="Argument.name">HOST</stringProp>
+            <stringProp name="Argument.value">${__P(host,localhost)}</stringProp>
+            <stringProp name="Argument.desc">接続先ホスト名。実行時に -Jhost=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="PORT" elementType="Argument">
+            <stringProp name="Argument.name">PORT</stringProp>
+            <stringProp name="Argument.value">${__P(port,8080)}</stringProp>
+            <stringProp name="Argument.desc">接続先ポート番号。実行時に -Jport=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="BASE_PATH" elementType="Argument">
+            <stringProp name="Argument.name">BASE_PATH</stringProp>
+            <stringProp name="Argument.value">${__P(basePath,)}</stringProp>
+            <stringProp name="Argument.desc">全 API パスの先頭に付けるパス（例: /prod）。実行時に -JbasePath=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="API_KEY" elementType="Argument">
+            <stringProp name="Argument.name">API_KEY</stringProp>
+            <stringProp name="Argument.value">${__P(apiKey,XXXXXXXXXXXX)}</stringProp>
+            <stringProp name="Argument.desc">X-API-KEY ヘッダに固定で設定する値。実行時に -JapiKey=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="AUTH_TOKEN" elementType="Argument">
+            <stringProp name="Argument.name">AUTH_TOKEN</stringProp>
+            <stringProp name="Argument.value">${__P(authToken,)}</stringProp>
+            <stringProp name="Argument.desc">Authorization ヘッダの値（無効化してあるヘッダマネージャで使用）。実行時に -JauthToken=... で指定します。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="THREADS" elementType="Argument">
+            <stringProp name="Argument.name">THREADS</stringProp>
+            <stringProp name="Argument.value">${__P(threads,1)}</stringProp>
+            <stringProp name="Argument.desc">スレッド数（同時に動く仮想ユーザー数）。最小構成は 1。実行時に -Jthreads=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="RAMP_UP" elementType="Argument">
+            <stringProp name="Argument.name">RAMP_UP</stringProp>
+            <stringProp name="Argument.value">${__P(rampUp,1)}</stringProp>
+            <stringProp name="Argument.desc">全スレッドを起動し終えるまでの秒数。最小構成は 1。実行時に -JrampUp=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="LOOPS" elementType="Argument">
+            <stringProp name="Argument.name">LOOPS</stringProp>
+            <stringProp name="Argument.value">${__P(loops,1)}</stringProp>
+            <stringProp name="Argument.desc">各スレッドの繰り返し回数。最小構成は 1。実行時に -Jloops=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="CONNECT_TIMEOUT" elementType="Argument">
+            <stringProp name="Argument.name">CONNECT_TIMEOUT</stringProp>
+            <stringProp name="Argument.value">${__P(connectTimeout,10000)}</stringProp>
+            <stringProp name="Argument.desc">接続タイムアウト（ミリ秒）。実行時に -JconnectTimeout=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="RESPONSE_TIMEOUT" elementType="Argument">
+            <stringProp name="Argument.name">RESPONSE_TIMEOUT</stringProp>
+            <stringProp name="Argument.value">${__P(responseTimeout,60000)}</stringProp>
+            <stringProp name="Argument.desc">応答タイムアウト（ミリ秒）。API Gateway の統合タイムアウト既定値 29 秒より長くしています。実行時に -JresponseTimeout=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="RESULT_DIR" elementType="Argument">
+            <stringProp name="Argument.name">RESULT_DIR</stringProp>
+            <stringProp name="Argument.value">${__P(resultDir,~/results)}</stringProp>
+            <stringProp name="Argument.desc">JTL の出力フォルダ。~/ は「この JMX ファイルがあるフォルダ」を表す JMeter の記法です。実行時に -JresultDir=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="RUN_ID" elementType="Argument">
+            <stringProp name="Argument.name">RUN_ID</stringProp>
+            <stringProp name="Argument.value">${__P(runId,${__time(yyyyMMdd-HHmmss,)})}</stringProp>
+            <stringProp name="Argument.desc">結果ファイル名に付ける実行 ID（既定: テスト開始時刻）。実行時に -JrunId=... で上書きできます。</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+    </TestPlan>
+    <hashTree>
+      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTPリクエスト初期値設定">
+        <stringProp name="TestPlan.comments">全リクエスト共通の接続先・文字コード・タイムアウト。値はテスト計画のユーザー定義変数を参照しており、実行時に -Jhost= などで上書きできます。実装は HttpClient4（JMeter 5.6.3 の既定・推奨）です。</stringProp>
+        <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+          <collectionProp name="Arguments.arguments"/>
+        </elementProp>
+        <stringProp name="HTTPSampler.domain">${HOST}</stringProp>
+        <stringProp name="HTTPSampler.port">${PORT}</stringProp>
+        <stringProp name="HTTPSampler.protocol">${PROTOCOL}</stringProp>
+        <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+        <stringProp name="HTTPSampler.path"></stringProp>
+        <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+        <stringProp name="HTTPSampler.connect_timeout">${CONNECT_TIMEOUT}</stringProp>
+        <stringProp name="HTTPSampler.response_timeout">${RESPONSE_TIMEOUT}</stringProp>
+        <boolProp name="HTTPSampler.image_parser">false</boolProp>
+        <boolProp name="HTTPSampler.concurrentDwn">false</boolProp>
+        <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+      </ConfigTestElement>
+      <hashTree/>
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTPヘッダマネージャ（共通: X-API-KEY）">
+        <stringProp name="TestPlan.comments">全リクエストに X-API-KEY ヘッダを固定で付与します（値はユーザー定義変数 API_KEY、既定 XXXXXXXXXXXX）。</stringProp>
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">X-API-KEY</stringProp>
+            <stringProp name="Header.value">${API_KEY}</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
+      <hashTree/>
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTPヘッダマネージャ（Authorization・無効化中）" enabled="false">
+        <stringProp name="TestPlan.comments">OpenAPI 定義に認可（security）があるため用意した Authorization ヘッダです。API Gateway 経由でオーソライザー（Cognito 等）を通す場合は、この要素を有効化し -JauthToken=トークン を指定してください。</stringProp>
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">Authorization</stringProp>
+            <stringProp name="Header.value">${AUTH_TOKEN}</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
+      <hashTree/>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="TG01_OrdersApi">
+        <stringProp name="TestPlan.comments">最小構成（スレッド 1・ランプアップ 1 秒・ループ 1 回）で各 API を 1 回ずつ呼び出し、疎通を確認します。エラー後も続行するため、1 件失敗しても残りの API をすべて確認できます。</stringProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">${LOOPS}</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">${THREADS}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${RAMP_UP}</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <boolProp name="ThreadGroup.delayedStart">false</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="01 GET /orders [listOrders]">
+          <stringProp name="TestPlan.comments">概要: 注文一覧を取得する
+OpenAPI 定義: get /orders
+operationId: listOrders
+認可（security）: CognitoM2M[https://api.example.com/orders.read]
+API Gateway 統合: type=http_proxy, httpMethod=GET, uri=https://backend.internal.example.com:443/orders, connectionType=VPC_LINK
+テストデータ: OpenAPI のデータ型定義からランダム生成（乱数シード 20260926）</stringProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="limit" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">true</boolProp>
+                <stringProp name="Argument.name">limit</stringProp>
+                <stringProp name="Argument.value">32</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+                <boolProp name="HTTPArgument.use_equals">true</boolProp>
+              </elementProp>
+              <elementProp name="cursor" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">true</boolProp>
+                <stringProp name="Argument.name">cursor</stringProp>
+                <stringProp name="Argument.value">cYtAJ4q1E93</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+                <boolProp name="HTTPArgument.use_equals">true</boolProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain"></stringProp>
+          <stringProp name="HTTPSampler.port"></stringProp>
+          <stringProp name="HTTPSampler.protocol"></stringProp>
+          <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+          <stringProp name="HTTPSampler.path">${BASE_PATH}/orders</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTPヘッダマネージャ（この API 用）">
+            <stringProp name="TestPlan.comments">この API 固有のヘッダ（Content-Type / Accept / OpenAPI のヘッダ・クッキーパラメータ）です。</stringProp>
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Accept</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="ステータスコード検証（200）">
+            <stringProp name="TestPlan.comments">OpenAPI 定義の成功レスポンス（200）と応答コードが一致するかを検証します。</stringProp>
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message">応答コードが OpenAPI 定義の成功コード（200）と一致しません</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">8</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="02 POST /orders [createOrder]">
+          <stringProp name="TestPlan.comments">概要: 注文を作成する
+OpenAPI 定義: post /orders
+operationId: createOrder
+認可（security）: CognitoM2M[https://api.example.com/orders.write]
+API Gateway 統合: type=http_proxy, httpMethod=POST, uri=https://backend.internal.example.com:443/orders, connectionType=VPC_LINK
+テストデータ: OpenAPI のデータ型定義からランダム生成（乱数シード 20260926）</stringProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{
+  &quot;customerId&quot;: &quot;C29272607&quot;,
+  &quot;items&quot;: [
+    {
+      &quot;sku&quot;: &quot;gxKFxxJGv6by4&quot;,
+      &quot;qty&quot;: 276,
+      &quot;unitPrice&quot;: 57.60
+    }
+  ]
+}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain"></stringProp>
+          <stringProp name="HTTPSampler.port"></stringProp>
+          <stringProp name="HTTPSampler.protocol"></stringProp>
+          <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+          <stringProp name="HTTPSampler.path">${BASE_PATH}/orders</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTPヘッダマネージャ（この API 用）">
+            <stringProp name="TestPlan.comments">この API 固有のヘッダ（Content-Type / Accept / OpenAPI のヘッダ・クッキーパラメータ）です。</stringProp>
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Accept</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="ステータスコード検証（201）">
+            <stringProp name="TestPlan.comments">OpenAPI 定義の成功レスポンス（201）と応答コードが一致するかを検証します。</stringProp>
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49587">201</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message">応答コードが OpenAPI 定義の成功コード（201）と一致しません</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">8</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="03 OPTIONS /orders">
+          <stringProp name="TestPlan.comments">概要: CORSプリフライト
+OpenAPI 定義: options /orders
+API Gateway 統合: type=mock</stringProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain"></stringProp>
+          <stringProp name="HTTPSampler.port"></stringProp>
+          <stringProp name="HTTPSampler.protocol"></stringProp>
+          <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+          <stringProp name="HTTPSampler.path">${BASE_PATH}/orders</stringProp>
+          <stringProp name="HTTPSampler.method">OPTIONS</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="ステータスコード検証（200）">
+            <stringProp name="TestPlan.comments">OpenAPI 定義の成功レスポンス（200）と応答コードが一致するかを検証します。</stringProp>
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message">応答コードが OpenAPI 定義の成功コード（200）と一致しません</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">8</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="04 GET /orders/{orderId} [getOrder]">
+          <stringProp name="TestPlan.comments">OpenAPI 定義: get /orders/{orderId}
+operationId: getOrder
+認可（security）: CognitoM2M[https://api.example.com/orders.read]
+API Gateway 統合: type=http_proxy, httpMethod=GET, uri=https://backend.internal.example.com:443/orders/{orderId}, connectionType=VPC_LINK
+テストデータ: OpenAPI のデータ型定義からランダム生成（乱数シード 20260926）</stringProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain"></stringProp>
+          <stringProp name="HTTPSampler.port"></stringProp>
+          <stringProp name="HTTPSampler.protocol"></stringProp>
+          <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+          <stringProp name="HTTPSampler.path">${BASE_PATH}/orders/vaMRAPdb2x4</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTPヘッダマネージャ（この API 用）">
+            <stringProp name="TestPlan.comments">この API 固有のヘッダ（Content-Type / Accept / OpenAPI のヘッダ・クッキーパラメータ）です。</stringProp>
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Accept</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="ステータスコード検証（200）">
+            <stringProp name="TestPlan.comments">OpenAPI 定義の成功レスポンス（200）と応答コードが一致するかを検証します。</stringProp>
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message">応答コードが OpenAPI 定義の成功コード（200）と一致しません</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">8</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="05 ANY(GET) /{proxy+} [proxyAll]">
+          <stringProp name="TestPlan.comments">OpenAPI 定義: x-amazon-apigateway-any-method /{proxy+}
+operationId: proxyAll
+ANY メソッド（x-amazon-apigateway-any-method）のため GET で代表して送信します（生成時の --any-method / -AnyMethod で変更可）。
+認可（security）: CognitoM2M[https://api.example.com/orders.read]
+API Gateway 統合: type=http_proxy, httpMethod=ANY, uri=https://backend.internal.example.com:443/{proxy}, connectionType=VPC_LINK
+テストデータ: OpenAPI のデータ型定義からランダム生成（乱数シード 20260926）</stringProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain"></stringProp>
+          <stringProp name="HTTPSampler.port"></stringProp>
+          <stringProp name="HTTPSampler.protocol"></stringProp>
+          <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+          <stringProp name="HTTPSampler.path">${BASE_PATH}/dX6dAAKuGS7Xc</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="ステータスコード検証（200）">
+            <stringProp name="TestPlan.comments">OpenAPI 定義の成功レスポンス（200）と応答コードが一致するかを検証します。</stringProp>
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message">応答コードが OpenAPI 定義の成功コード（200）と一致しません</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">8</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+        <JSR223Listener guiclass="TestBeanGUI" testclass="JSR223Listener" testname="結果ログ出力（1 リクエスト 1 行）">
+          <stringProp name="TestPlan.comments">各 API の結果（OK/NG・応答コード・応答時間）をログファイルへ 1 行ずつ出力します。</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="script">// 各 API の結果を JMeter ログ（GUI 実行: jmeter.log / CLI 実行: -j で指定したファイル）へ 1 行ずつ出力します。
+// 形式: [API-RESULT] OK|NG | ラベル | メソッド URL | code=応答コード | 応答時間 ms | 受信バイト数 bytes
+import org.apache.jmeter.protocol.http.sampler.HTTPSampleResult
+
+def r = sampleResult
+if (r == null) {
+    return
+}
+String status = r.isSuccessful() ? &apos;OK&apos; : &apos;NG&apos;
+String method = (r instanceof HTTPSampleResult) ? ((HTTPSampleResult) r).getHTTPMethod() : &apos;-&apos;
+String url = r.getUrlAsString() ?: &apos;-&apos;
+String line = String.format(&apos;[API-RESULT] %s | %s | %s %s | code=%s | %d ms | %d bytes&apos;,
+        status, r.getSampleLabel(), method, url, r.getResponseCode(), r.getTime(), r.getBytesAsLong())
+if (r.isSuccessful()) {
+    log.info(line)
+} else {
+    log.warn(line)
+    String msg = r.getResponseMessage()
+    if (msg) {
+        log.warn(&apos;[API-RESULT]     message  : &apos; + msg)
+    }
+    r.getAssertionResults().each { a -&gt;
+        if (a.isFailure() || a.isError()) {
+            log.warn(&apos;[API-RESULT]     assertion: &apos; + a.getName() + &apos; : &apos; + a.getFailureMessage())
+        }
+    }
+    String body = r.getResponseDataAsString()
+    if (body != null &amp;&amp; body.length() &gt; 2000) {
+        body = body.substring(0, 2000) + &apos; ...(truncated)&apos;
+    }
+    log.warn(&apos;[API-RESULT]     response : &apos; + (body ?: &apos;(empty)&apos;))
+}</stringProp>
+        </JSR223Listener>
+        <hashTree/>
+      </hashTree>
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="結果をツリーで表示（GUI 確認用）">
+        <stringProp name="TestPlan.comments">GUI 実行時にリクエスト/レスポンスの中身を確認できます。保存済みの JTL を見る場合は「ファイル名」欄の［参照］から JTL ファイルを選択してください。</stringProp>
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>true</latency>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>true</message>
+            <threadName>true</threadName>
+            <dataType>true</dataType>
+            <encoding>true</encoding>
+            <assertions>true</assertions>
+            <subresults>true</subresults>
+            <responseData>true</responseData>
+            <samplerData>true</samplerData>
+            <xml>true</xml>
+            <fieldNames>true</fieldNames>
+            <responseHeaders>true</responseHeaders>
+            <requestHeaders>true</requestHeaders>
+            <responseDataOnError>false</responseDataOnError>
+            <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+            <bytes>true</bytes>
+            <sentBytes>true</sentBytes>
+            <url>true</url>
+            <fileName>true</fileName>
+            <hostname>true</hostname>
+            <threadCounts>true</threadCounts>
+            <sampleCount>true</sampleCount>
+            <idleTime>true</idleTime>
+            <connectTime>true</connectTime>
+          </value>
+        </objProp>
+        <stringProp name="filename"></stringProp>
+      </ResultCollector>
+      <hashTree/>
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="統計レポート（GUI 確認用）">
+        <stringProp name="TestPlan.comments">GUI 実行時に件数・応答時間・エラー率を集計表示します。保存済みの JTL も［参照］から読み込めます。</stringProp>
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>true</latency>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>true</message>
+            <threadName>true</threadName>
+            <dataType>true</dataType>
+            <encoding>true</encoding>
+            <assertions>true</assertions>
+            <subresults>true</subresults>
+            <responseData>true</responseData>
+            <samplerData>true</samplerData>
+            <xml>true</xml>
+            <fieldNames>true</fieldNames>
+            <responseHeaders>true</responseHeaders>
+            <requestHeaders>true</requestHeaders>
+            <responseDataOnError>false</responseDataOnError>
+            <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+            <bytes>true</bytes>
+            <sentBytes>true</sentBytes>
+            <url>true</url>
+            <fileName>true</fileName>
+            <hostname>true</hostname>
+            <threadCounts>true</threadCounts>
+            <sampleCount>true</sampleCount>
+            <idleTime>true</idleTime>
+            <connectTime>true</connectTime>
+          </value>
+        </objProp>
+        <stringProp name="filename"></stringProp>
+      </ResultCollector>
+      <hashTree/>
+      <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="JTL出力（XML・詳細付き）">
+        <stringProp name="TestPlan.comments">結果を JTL ファイルへ XML 形式（リクエスト/レスポンスのヘッダ・本文付き）で保存します。JMeter GUI の「結果をツリーで表示」「統計レポート」等の［参照］から開いて確認できます。CLI 実行時は -JjtlFile=出力先 で保存場所を指定できます。</stringProp>
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>true</latency>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>true</message>
+            <threadName>true</threadName>
+            <dataType>true</dataType>
+            <encoding>true</encoding>
+            <assertions>true</assertions>
+            <subresults>true</subresults>
+            <responseData>true</responseData>
+            <samplerData>true</samplerData>
+            <xml>true</xml>
+            <fieldNames>true</fieldNames>
+            <responseHeaders>true</responseHeaders>
+            <requestHeaders>true</requestHeaders>
+            <responseDataOnError>false</responseDataOnError>
+            <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+            <bytes>true</bytes>
+            <sentBytes>true</sentBytes>
+            <url>true</url>
+            <fileName>true</fileName>
+            <hostname>true</hostname>
+            <threadCounts>true</threadCounts>
+            <sampleCount>true</sampleCount>
+            <idleTime>true</idleTime>
+            <connectTime>true</connectTime>
+          </value>
+        </objProp>
+        <stringProp name="filename">${__P(jtlFile,${RESULT_DIR}/OrdersApi_${RUN_ID}.jtl)}</stringProp>
+      </ResultCollector>
+      <hashTree/>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>

@@ -1,0 +1,492 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "OrdersApi",
+    "description": "受注API（社内向け・プライベートREST API）",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API基盤チーム",
+      "email": "api@example.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.private.example.com",
+      "description": "プライベートカスタムドメイン"
+    }
+  ],
+  "x-amazon-apigateway-endpoint-configuration": {
+    "types": [
+      "PRIVATE"
+    ],
+    "vpcEndpointIds": [
+      "vpce-0123456789abcdef0"
+    ]
+  },
+  "x-amazon-apigateway-binary-media-types": [
+    "application/pdf"
+  ],
+  "x-amazon-apigateway-minimum-compression-size": 1024,
+  "x-amazon-apigateway-api-key-source": "HEADER",
+  "x-amazon-apigateway-request-validators": {
+    "all": {
+      "validateRequestBody": true,
+      "validateRequestParameters": true
+    }
+  },
+  "x-amazon-apigateway-request-validator": "all",
+  "x-amazon-apigateway-policy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "execute-api:Invoke",
+        "Resource": "execute-api:/*",
+        "Condition": {
+          "StringEquals": {
+            "aws:SourceVpce": "vpce-0123456789abcdef0"
+          }
+        }
+      }
+    ]
+  },
+  "x-amazon-apigateway-gateway-responses": {
+    "UNAUTHORIZED": {
+      "statusCode": "401",
+      "responseParameters": {
+        "gatewayresponse.header.Content-Type": "'application/json'"
+      },
+      "responseTemplates": {
+        "application/json": "{\"code\":\"UNAUTHORIZED\",\"message\":\"$context.error.message\",\"requestId\":\"$context.requestId\"}"
+      }
+    },
+    "ACCESS_DENIED": {
+      "statusCode": "403",
+      "responseTemplates": {
+        "application/json": "{\"code\":\"FORBIDDEN\",\"message\":\"$context.error.message\",\"requestId\":\"$context.requestId\"}"
+      }
+    },
+    "DEFAULT_5XX": {
+      "statusCode": "500",
+      "responseTemplates": {
+        "application/json": "{\"code\":\"INTERNAL_ERROR\",\"requestId\":\"$context.requestId\"}"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Orders",
+      "description": "受注に関する操作"
+    }
+  ],
+  "paths": {
+    "/orders": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "listOrders",
+        "summary": "注文一覧を取得する",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "取得件数（1-100）",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "続きを取得するためのカーソル",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "CognitoM2M": [
+              "https://api.example.com/orders.read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "リクエスト不正"
+          },
+          "401": {
+            "description": "認証エラー"
+          },
+          "403": {
+            "description": "権限不足"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "http_proxy",
+          "httpMethod": "GET",
+          "connectionType": "VPC_LINK",
+          "connectionId": "${stageVariables.vpcLinkV2Id}",
+          "integrationTarget": "arn:aws:elasticloadbalancing:ap-northeast-1:111122223333:loadbalancer/app/internal-alb/1234567890abcdef",
+          "uri": "https://backend.internal.example.com:443/orders",
+          "requestParameters": {
+            "integration.request.header.X-Client-Id": "context.authorizer.claims.client_id"
+          },
+          "timeoutInMillis": 29000,
+          "passthroughBehavior": "when_no_match",
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.X-Request-Id": "integration.response.header.X-Request-Id"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "createOrder",
+        "summary": "注文を作成する",
+        "security": [
+          {
+            "CognitoM2M": [
+              "https://api.example.com/orders.write"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "作成成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "リクエスト不正"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "http_proxy",
+          "httpMethod": "POST",
+          "connectionType": "VPC_LINK",
+          "connectionId": "${stageVariables.vpcLinkV2Id}",
+          "integrationTarget": "arn:aws:elasticloadbalancing:ap-northeast-1:111122223333:loadbalancer/app/internal-alb/1234567890abcdef",
+          "uri": "https://backend.internal.example.com:443/orders",
+          "timeoutInMillis": 29000,
+          "passthroughBehavior": "when_no_match",
+          "responses": {
+            "default": {
+              "statusCode": "201"
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORSプリフライト",
+        "responses": {
+          "200": {
+            "description": "CORS応答",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {}
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "mock",
+          "requestTemplates": {
+            "application/json": "{\"statusCode\": 200}"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'https://app.example.com'",
+                "method.response.header.Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'"
+              },
+              "responseTemplates": {
+                "application/json": "{}"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{orderId}": {
+      "parameters": [
+        {
+          "name": "orderId",
+          "in": "path",
+          "required": true,
+          "description": "注文ID",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "getOrder",
+        "security": [
+          {
+            "CognitoM2M": [
+              "https://api.example.com/orders.read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "見つからない"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "http_proxy",
+          "httpMethod": "GET",
+          "connectionType": "VPC_LINK",
+          "connectionId": "${stageVariables.vpcLinkV2Id}",
+          "integrationTarget": "arn:aws:elasticloadbalancing:ap-northeast-1:111122223333:loadbalancer/app/internal-alb/1234567890abcdef",
+          "uri": "https://backend.internal.example.com:443/orders/{orderId}",
+          "requestParameters": {
+            "integration.request.path.orderId": "method.request.path.orderId"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200"
+            }
+          }
+        }
+      }
+    },
+    "/{proxy+}": {
+      "x-amazon-apigateway-any-method": {
+        "operationId": "proxyAll",
+        "parameters": [
+          {
+            "name": "proxy",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "CognitoM2M": [
+              "https://api.example.com/orders.read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "http_proxy",
+          "httpMethod": "ANY",
+          "connectionType": "VPC_LINK",
+          "connectionId": "${stageVariables.vpcLinkV2Id}",
+          "integrationTarget": "arn:aws:elasticloadbalancing:ap-northeast-1:111122223333:loadbalancer/app/internal-alb/1234567890abcdef",
+          "uri": "https://backend.internal.example.com:443/{proxy}",
+          "requestParameters": {
+            "integration.request.path.proxy": "method.request.path.proxy"
+          },
+          "passthroughBehavior": "when_no_match",
+          "responses": {
+            "default": {
+              "statusCode": "200"
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "CognitoM2M": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header",
+        "x-amazon-apigateway-authtype": "cognito_user_pools",
+        "x-amazon-apigateway-authorizer": {
+          "type": "cognito_user_pools",
+          "providerARNs": [
+            "arn:aws:cognito-idp:ap-northeast-1:111122223333:userpool/ap-northeast-1_ABC123"
+          ],
+          "identitySource": "method.request.header.Authorization",
+          "authorizerResultTtlInSeconds": 300
+        }
+      }
+    },
+    "schemas": {
+      "Order": {
+        "type": "object",
+        "required": [
+          "orderId",
+          "customerId",
+          "status",
+          "items"
+        ],
+        "properties": {
+          "orderId": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string",
+            "pattern": "^C[0-9]{8}$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "PAID",
+              "SHIPPED",
+              "CANCELLED"
+            ]
+          },
+          "totalAmount": {
+            "type": "number",
+            "minimum": 0,
+            "multipleOf": 0.01
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItem"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OrderItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sku",
+          "qty"
+        ],
+        "properties": {
+          "sku": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999
+          },
+          "unitPrice": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "OrderList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Order"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateOrderRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "customerId",
+          "items"
+        ],
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "pattern": "^C[0-9]{8}$"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItem"
+            }
+          }
+        }
+      }
+    }
+  }
+}

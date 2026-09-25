@@ -1,0 +1,261 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "機能網羅テスト API (Coverage)",
+    "description": "openapi2jmx の網羅テスト用。実在の API ではありません。",
+    "version": "2.1.0-rc.1"
+  },
+  "servers": [
+    { "url": "https://{env}.example.com/api/v1", "variables": { "env": { "default": "stg" } } }
+  ],
+  "security": [ { "BearerAuth": [] } ],
+  "tags": [ { "name": "coverage" } ],
+  "paths": {
+    "/items": {
+      "parameters": [
+        { "$ref": "#/components/parameters/TraceId" },
+        { "name": "lang", "in": "query", "schema": { "type": "string", "enum": ["ja", "en"] } }
+      ],
+      "get": {
+        "operationId": "searchItems",
+        "summary": "検索（クエリの各種スタイル）",
+        "parameters": [
+          { "name": "lang", "in": "query", "required": true, "schema": { "type": "string", "enum": ["ja", "en", "zh"] } },
+          { "name": "ids", "in": "query", "schema": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 9 }, "minItems": 2, "maxItems": 3, "uniqueItems": true } },
+          { "name": "tagsCsv", "in": "query", "style": "form", "explode": false, "schema": { "type": "array", "items": { "type": "string", "maxLength": 4 }, "minItems": 2 } },
+          { "name": "spaced", "in": "query", "style": "spaceDelimited", "schema": { "type": "array", "items": { "type": "string", "enum": ["a_b", "c&d"] }, "minItems": 2 } },
+          { "name": "piped", "in": "query", "style": "pipeDelimited", "schema": { "type": "array", "items": { "type": "boolean" }, "minItems": 2 } },
+          { "name": "filter", "in": "query", "style": "deepObject", "explode": true, "schema": { "type": "object", "properties": { "min": { "type": "number", "multipleOf": 0.5, "minimum": 1, "maximum": 3 }, "q": { "type": "string", "pattern": "^[A-Z]{2}-\\d{3}(\\.[a-z]+)?$" } } } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "format": "int32", "minimum": 0, "exclusiveMinimum": true, "maximum": 5 } },
+          { "name": "X-Api-Key", "in": "header", "schema": { "type": "string" } },
+          { "name": "Accept", "in": "header", "schema": { "type": "string" } },
+          { "name": "X-Request-Date", "in": "header", "required": true, "schema": { "type": "string", "format": "date" } },
+          { "name": "X-Flags", "in": "header", "schema": { "type": "array", "items": { "type": "string", "enum": ["f1", "f2"] }, "minItems": 2 } },
+          { "name": "session", "in": "cookie", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "pref", "in": "cookie", "required": true, "schema": { "type": "string", "enum": ["dark mode", "light;mode"] } }
+        ],
+        "responses": {
+          "2XX": { "description": "ok", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ItemList" } } } },
+          "default": { "description": "error" }
+        }
+      },
+      "post": {
+        "operationId": "createItem",
+        "summary": "作成（allOf / readOnly / additionalProperties / nullable）",
+        "security": [],
+        "requestBody": { "$ref": "#/components/requestBodies/ItemBody" },
+        "responses": {
+          "201": { "description": "created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Item" } } } },
+          "202": { "description": "accepted" }
+        }
+      }
+    },
+    "/items/{itemId}/children/{childNo}": {
+      "parameters": [
+        { "name": "itemId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "put": {
+        "operationId": "replaceChild",
+        "parameters": [
+          { "name": "childNo", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 100, "maximum": 105 } },
+          { "name": "dryRun", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "note", "in": "query", "schema": { "type": "string", "enum": ["日本語 メモ", "a/b?c=d&e"] } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/xml": { "schema": { "$ref": "#/components/schemas/Child" } },
+            "text/plain": { "schema": { "type": "string" } }
+          }
+        },
+        "responses": { "200": { "description": "ok", "content": { "application/xml": { "schema": { "$ref": "#/components/schemas/Child" } } } } }
+      },
+      "delete": {
+        "operationId": "deleteChild",
+        "deprecated": true,
+        "parameters": [
+          { "name": "childNo", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "reason", "in": "query", "required": true, "schema": { "type": "string", "minLength": 3, "maxLength": 5 } }
+        ],
+        "responses": { "204": { "description": "deleted" } }
+      },
+      "patch": {
+        "operationId": "patchChild",
+        "parameters": [ { "name": "childNo", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": { "schema": { "type": "object", "properties": { "rank": { "type": "number", "exclusiveMaximum": true, "maximum": 10, "minimum": 9.5 } } } }
+          }
+        },
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/forms/contact": {
+      "post": {
+        "operationId": "postContactForm",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string", "maxLength": 10 }, "email": { "type": "string", "format": "email" }, "topics": { "type": "array", "items": { "type": "string", "enum": ["x", "y", "z"] }, "minItems": 2, "maxItems": 2 }, "meta": { "type": "object", "properties": { "k": { "type": "integer" } } } } }
+            }
+          }
+        },
+        "responses": { "200": { "description": "ok" }, "201": { "description": "created" } }
+      }
+    },
+    "/files": {
+      "post": {
+        "operationId": "uploadFile",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": { "type": "object", "properties": { "file": { "type": "string", "format": "binary" }, "description": { "type": "string" }, "checksum": { "type": "string", "format": "byte" } } }
+            }
+          }
+        },
+        "responses": { "201": { "description": "uploaded" } }
+      },
+      "head": {
+        "operationId": "headFiles",
+        "parameters": [ { "name": "since", "in": "query", "schema": { "type": "string", "format": "date-time" } } ],
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/binary/{key}": {
+      "post": {
+        "operationId": "putBinary",
+        "requestBody": { "content": { "application/octet-stream": { "schema": { "type": "string", "format": "binary" } } } },
+        "responses": { "200": { "description": "ok", "content": { "application/pdf": { "schema": { "type": "string", "format": "binary" } } } } }
+      }
+    },
+    "/polymorph": {
+      "post": {
+        "operationId": "postPolymorph",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pet": { "oneOf": [ { "$ref": "#/components/schemas/Cat" }, { "$ref": "#/components/schemas/Dog" } ] },
+                  "any": { "anyOf": [ { "type": "integer", "minimum": 5, "maximum": 5 }, { "type": "string" } ] },
+                  "tree": { "$ref": "#/components/schemas/TreeNode" },
+                  "scores": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 9 } },
+                  "free": { "type": "object" },
+                  "ip4": { "type": "string", "format": "ipv4" },
+                  "ip6": { "type": "string", "format": "ipv6" },
+                  "site": { "type": "string", "format": "uri" },
+                  "host": { "type": "string", "format": "hostname" },
+                  "pw": { "type": "string", "format": "password" },
+                  "at": { "type": "string", "format": "time" },
+                  "big": { "type": "integer", "format": "int64", "minimum": 9007199254740000, "multipleOf": 7 },
+                  "neg": { "type": "number", "maximum": -0.25, "multipleOf": 0.25 },
+                  "tiny": { "type": "number", "minimum": 1e-7, "maximum": 2e-7, "multipleOf": 1e-7 },
+                  "consts": { "type": "string", "enum": [null, "only"] },
+                  "nums": { "type": "array", "items": { "type": "number", "enum": [1.50, 2, 3.125] }, "minItems": 3 },
+                  "hira": { "type": "string", "pattern": "^[\\u3041-\\u3093]{3}$" },
+                  "alt": { "type": "string", "pattern": "^(foo|bar)-(?:x|yy)[0-9a-f]{2,4}$" },
+                  "neg_class": { "type": "string", "pattern": "^[^0-9A-Za-z]{4}$" },
+                  "unsupported": { "type": "string", "pattern": "^(?=abc)\\p{L}+$" },
+                  "missing_ref": { "$ref": "#/components/schemas/DoesNotExist" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "ok", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/undeclared/{a}/{b+}": {
+      "x-amazon-apigateway-any-method": {
+        "responses": { "default": { "description": "any" } }
+      }
+    },
+    "/examples/{code}": {
+      "get": {
+        "operationId": "getWithExamples",
+        "parameters": [
+          { "name": "code", "in": "path", "required": true, "example": "EX-001", "schema": { "type": "string" } },
+          { "name": "size", "in": "query", "examples": { "small": { "value": 3 }, "large": { "value": 30 } }, "schema": { "type": "integer", "default": 10 } },
+          { "name": "fmt", "in": "query", "schema": { "type": "string", "default": "json", "enum": ["json", "csv"] } }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/JsonOk" } }
+      }
+    },
+    "x-internal-note": { "ignored": true }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+      "ApiKeyHeader": { "type": "apiKey", "name": "x-api-key", "in": "header" }
+    },
+    "parameters": {
+      "TraceId": { "name": "X-Trace-Id", "in": "header", "required": true, "schema": { "type": "string", "pattern": "^[0-9a-f]{8}$" } }
+    },
+    "requestBodies": {
+      "ItemBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "example": { "name": "例のアイテム", "price": 1200, "tags": ["sale"] },
+            "schema": { "$ref": "#/components/schemas/NewItem" }
+          }
+        }
+      }
+    },
+    "responses": {
+      "JsonOk": { "description": "ok", "content": { "application/json": { "schema": { "type": "object" } } } }
+    },
+    "schemas": {
+      "Base": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "readOnly": true },
+          "createdAt": { "type": "string", "format": "date-time", "readOnly": true },
+          "name": { "type": "string", "minLength": 2, "maxLength": 20 }
+        }
+      },
+      "NewItem": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Base" },
+          {
+            "type": "object",
+            "required": ["name", "price"],
+            "properties": {
+              "price": { "type": "integer", "minimum": 100, "maximum": 100000, "multipleOf": 100 },
+              "discount": { "type": "number", "minimum": 0, "maximum": 1, "exclusiveMaximum": true, "nullable": true },
+              "tags": { "type": "array", "items": { "type": "string", "pattern": "^[a-z]{3,8}$" }, "maxItems": 5 },
+              "attributes": { "type": "object", "additionalProperties": { "type": "string", "maxLength": 6 } },
+              "status": { "type": "string", "enum": ["DRAFT", "ACTIVE"], "default": "DRAFT" },
+              "secretToken": { "type": "string", "writeOnly": true, "minLength": 12, "maxLength": 12 }
+            }
+          }
+        ]
+      },
+      "Item": { "allOf": [ { "$ref": "#/components/schemas/NewItem" } ] },
+      "ItemList": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Item" } } } },
+      "Child": {
+        "type": "object",
+        "xml": { "name": "child" },
+        "properties": {
+          "no": { "type": "integer", "minimum": 100, "maximum": 105 },
+          "label": { "type": "string", "enum": ["<A&B>", "\"quoted\""] },
+          "parts": { "type": "array", "items": { "type": "string", "maxLength": 3 }, "minItems": 2 },
+          "detail": { "type": "object", "properties": { "flag": { "type": "boolean" } } }
+        }
+      },
+      "Cat": { "type": "object", "required": ["kind"], "properties": { "kind": { "type": "string", "enum": ["cat"] }, "lives": { "type": "integer", "minimum": 1, "maximum": 9 } } },
+      "Dog": { "type": "object", "properties": { "kind": { "type": "string", "enum": ["dog"] } } },
+      "TreeNode": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "string", "maxLength": 3 },
+          "children": { "type": "array", "items": { "$ref": "#/components/schemas/TreeNode" } },
+          "parent": { "$ref": "#/components/schemas/TreeNode" }
+        }
+      }
+    }
+  }
+}
