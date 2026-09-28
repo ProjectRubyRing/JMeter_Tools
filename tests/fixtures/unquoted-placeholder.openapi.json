@@ -1,0 +1,66 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Placeholder Api",
+    "version": "1.0.0",
+    "description": "値の位置に引用符なしの ${...}（Terraform の templatefile などで後から置換するプレースホルダ）を含む定義。厳密には JSON として不正。"
+  },
+  "paths": {
+    "/items": {
+      "post": {
+        "operationId": "createItem",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1, "maximum": ${max_limit} }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["timeoutMs", "note", "tags"],
+                "properties": {
+                  "timeoutMs": { "type": "integer", "example": ${integration_timeout_ms} },
+                  "ratio": { "type": "number", "default": ${ default_ratio } },
+                  "note": { "type": "string", "example": "quoted ${not_replaced} and escaped \" ${still_in_string} \\" },
+                  "tags": { "type": "array", "items": { "type": "integer", "enum": [${tag_a},7] }, "minItems": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "created" } },
+        "x-amazon-apigateway-integration": {
+          "type": "http_proxy",
+          "httpMethod": "POST",
+          "uri": "http://${stageVariables.backendHost}/items",
+          "connectionType": "VPC_LINK",
+          "connectionId": "${stageVariables.vpcLinkV2Id}",
+          "timeoutInMillis": ${integration_timeout_ms}
+        }
+      }
+    },
+    "/items/{id}": {
+      "get": {
+        "operationId": "getItem",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^I[0-9]{6}$" } }
+        ],
+        "responses": { "200": { "description": "ok" } },
+        "x-amazon-apigateway-integration": {
+          "type": "http_proxy",
+          "httpMethod": "GET",
+          "uri": "http://${stageVariables.backendHost}/items/{id}",
+          "connectionType": "VPC_LINK",
+          "connectionId": "${stageVariables.vpcLinkV2Id}",
+          "timeoutInMillis": ${integration_timeout_ms}
+        }
+      }
+    }
+  }
+}

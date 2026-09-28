@@ -31,7 +31,8 @@ $root = Split-Path -Parent $PSScriptRoot
 $sh = Join-Path $root 'linux/openapi2jmx.sh'
 $ps = Join-Path $root 'windows/OpenApi2Jmx.ps1'
 if ($Inputs.Count -eq 0) {
-    $Inputs = @((Join-Path $root 'openapi/orders-api.openapi.json'), (Join-Path $PSScriptRoot 'fixtures/feature-coverage.openapi.json'))
+    $Inputs = @((Join-Path $root 'openapi/orders-api.openapi.json'), (Join-Path $PSScriptRoot 'fixtures/feature-coverage.openapi.json'),
+        (Join-Path $PSScriptRoot 'fixtures/unquoted-placeholder.openapi.json'))
 }
 New-Item -ItemType Directory -Force -Path $WorkDir | Out-Null
 
@@ -39,7 +40,7 @@ $optionSets = @(
     @{ Name = 'default'; Sh = @(); Ps = @() },
     @{ Name = 'required-only'; Sh = @('--required-only'); Ps = @('-RequiredOnly') },
     @{ Name = 'use-examples'; Sh = @('--use-examples'); Ps = @('-UseExamples') },
-    @{ Name = 'custom'; Sh = @('--any-method', 'POST', '--base-path', '/prod', '--host', 'api.example.com', '--port', '0443', '--protocol', 'HTTPS', '--api-key', 'k,e\y$1'); Ps = @('-AnyMethod', 'post', '-BasePath', '/prod', '-TargetHost', 'api.example.com', '-Port', '0443', '-Protocol', 'HTTPS', '-ApiKey', 'k,e\y$1') }
+    @{ Name = 'custom'; Sh = @('--any-method', 'POST', '--base-path', '/prod', '--host', 'api.example.com', '--port', '0443', '--protocol', 'HTTPS', '--api-key', 'k,e\y$1', '--placeholder-value', '-1500.25'); Ps = @('-AnyMethod', 'post', '-BasePath', '/prod', '-TargetHost', 'api.example.com', '-Port', '0443', '-Protocol', 'HTTPS', '-ApiKey', 'k,e\y$1', '-PlaceholderValue', '-1500.25') }
 )
 
 function Invoke-Quiet([string]$Exe, [string[]]$ArgList) {

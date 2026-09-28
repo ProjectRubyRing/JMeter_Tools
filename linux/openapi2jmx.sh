@@ -47,6 +47,9 @@ usage() {
                           GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS（既定: GET）
       --required-only     必須（required）のパラメータ・プロパティだけを生成する
       --use-examples      example / default が定義されていればランダム値より優先する
+      --placeholder-value N
+                          値の位置に引用符なしで書かれた \${...}（後で置換するプレースホルダ）に
+                          仮に入れる数値（既定: 3000）。置き換えた箇所は警告として表示します
   -h, --help              このヘルプを表示
   -V, --version           バージョンを表示
 
@@ -88,6 +91,9 @@ SEED=""
 ANY_METHOD="GET"
 REQUIRED_ONLY="0"
 USE_EXAMPLES="0"
+# 値の位置に引用符なしで書かれた ${...}（例: "timeoutInMillis": ${integration_timeout_ms}）は
+# JSON として読めないため、この数値に置き換えて読み込む（--placeholder-value で変更可）
+PLACEHOLDER_VALUE="3000"
 
 # ---------------------------------------------------------------- 引数解析
 while [[ $# -gt 0 ]]; do
@@ -113,6 +119,8 @@ while [[ $# -gt 0 ]]; do
     --any-method=*)  ANY_METHOD="${1#*=}"; shift ;;
     --required-only) REQUIRED_ONLY="1"; shift ;;
     --use-examples)  USE_EXAMPLES="1"; shift ;;
+    --placeholder-value)   need_value "$1" "$#"; PLACEHOLDER_VALUE="$2"; shift 2 ;;
+    --placeholder-value=*) PLACEHOLDER_VALUE="${1#*=}"; shift ;;
     -h|--help)       usage; exit 0 ;;
     -V|--version)    printf '%s %s (Apache JMeter 5.6.3 対応)\n' "${SCRIPT_NAME}" "${TOOL_VERSION}"; exit 0 ;;
     --)              shift; break ;;
@@ -137,6 +145,7 @@ readonly RE_HOST='^[A-Za-z0-9._:-]+$'
 readonly RE_HOST6='^\[[0-9A-Fa-f:.]+\]$'
 readonly RE_BASE_PATH='^(/[A-Za-z0-9._~%-]+)+$'
 readonly RE_SEED='^[0-9]{1,12}$'
+readonly RE_NUMBER='^-?(0|[1-9][0-9]{0,14})([.][0-9]{1,12})?$'
 readonly RE_CNTRL='[[:cntrl:]]'
 
 [[ -n "${INPUT}" ]] || { usage >&2; die "OpenAPI 定義ファイルを -i で指定してください"; }
@@ -172,6 +181,10 @@ if [[ -n "${SEED}" ]]; then
   SEED="$((10#${SEED}))"
 fi
 
+if ! [[ "${PLACEHOLDER_VALUE}" =~ ${RE_NUMBER} ]]; then
+  die "--placeholder-value は JSON の数値（例: 3000、-1、2.5。整数部 15 桁・小数部 12 桁以内）で指定してください: ${PLACEHOLDER_VALUE}"
+fi
+
 ANY_METHOD="${ANY_METHOD^^}"
 case "${ANY_METHOD}" in
   GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) ;;
@@ -205,6 +218,7 @@ exec "${PYTHON_BIN}" - \
   "host=${HOST}" "port=${PORT}" "protocol=${PROTOCOL}" "base_path=${BASE_PATH}" \
   "api_key=${API_KEY}" "seed=${SEED}" "any_method=${ANY_METHOD}" \
   "required_only=${REQUIRED_ONLY}" "use_examples=${USE_EXAMPLES}" \
+  "placeholder_value=${PLACEHOLDER_VALUE}" \
   "tool_version=${TOOL_VERSION}" <<'PYEOF'
 # -*- coding: utf-8 -*-
 # =============================================================================
@@ -2116,7 +2130,44 @@ def setup_stdio():
             pass
 
 
-def load_json(path):
+# JSON 文字列（エスケープ込み）と ${...} を先頭から順に拾う。文字列は読み飛ばし、${...} だけを置き換える。
+# 直後が : の ${...} はキーの位置なので置き換えない（PowerShell 5.1 の JSON 解析は引用符なしのキーを
+# 受け付けてしまい、実装間で結果が変わるため。置き換えなければどの実装でも構文エラーになる）
+PLACEHOLDER_SCAN = re.compile(r'"[^"\\]*(?:\\.[^"\\]*)*"|\$\{[^{}"\r\n]+\}(?![ \t\r\n]*:)', re.S)
+PLACEHOLDER_LINES_SHOWN = 10
+
+
+def fill_placeholders(text, value):
+    """JSON 文字列の外に引用符なしで書かれた ${...}（後で置換するプレースホルダ）を数値 value に置き換える。
+    文字列の中の ${...}（"${stageVariables.x}" など）は正しい JSON なので変更しない。
+    戻り値: (置換後の文字列, [(プレースホルダ, [行番号, ...]), ...]（初出順）)"""
+    if '${' not in text:
+        return text, []
+    found = OrderedDict()
+    out = []
+    pos = 0
+    line = 1
+    for m in PLACEHOLDER_SCAN.finditer(text):
+        s = m.start()
+        if text[s] != '$':
+            continue    # 文字列（読み飛ばすだけ）
+        line += text.count('\n', pos, s)
+        out.append(text[pos:s])
+        out.append(value)
+        found.setdefault(m.group(0), []).append(line)
+        pos = m.end()
+    out.append(text[pos:])
+    return ''.join(out), list(found.items())
+
+
+def placeholder_warning(name, lines, value):
+    shown = ', '.join(str(n) for n in lines[:PLACEHOLDER_LINES_SHOWN])
+    more = ' ほか' if len(lines) > PLACEHOLDER_LINES_SHOWN else ''
+    return ('引用符なしのプレースホルダ %s は JSON として読めないため、数値 %s に置き換えて読み込みました（%d 箇所・行 %s%s）'
+            % (name, value, len(lines), shown, more))
+
+
+def load_json(path, placeholder_value):
     with open(path, 'rb') as f:
         raw = f.read()
     try:
@@ -2134,10 +2185,12 @@ def load_json(path):
     def bad_constant(name):
         raise ValueError('JSON では使えない値です: ' + name)
 
+    text, placeholders = fill_placeholders(text, placeholder_value)
     try:
-        return json.loads(text, object_pairs_hook=OrderedDict, parse_float=Decimal, parse_constant=bad_constant)
+        doc = json.loads(text, object_pairs_hook=OrderedDict, parse_float=Decimal, parse_constant=bad_constant)
     except ValueError as e:
         raise GenError('JSON の構文エラーです（YAML 形式は未対応です）: ' + str(e))
+    return doc, placeholders
 
 
 def parse_kv(argv):
@@ -2166,7 +2219,8 @@ def main():
         'any_method': o.get('any_method', 'GET'),
     }
 
-    doc = load_json(input_path)
+    placeholder_value = o.get('placeholder_value', '3000')
+    doc, placeholders = load_json(input_path, placeholder_value)
     if not is_obj(doc):
         raise GenError('OpenAPI 定義のルートが JSON オブジェクトではありません')
     if has(doc, 'swagger'):
@@ -2187,6 +2241,8 @@ def main():
     name = safe_name(title)
 
     ctx = Ctx(doc, seed, opts)
+    for ph_name, ph_lines in placeholders:
+        ctx.warn(placeholder_warning(ph_name, ph_lines, placeholder_value))
     ops = collect_operations(ctx)
     if not ops:
         raise GenError('"paths" に呼び出し可能な操作（get/post/put/delete など）が 1 件もありません')
@@ -2248,6 +2304,8 @@ def main():
         print('         %s%s' % (r['label'], ('  (' + ', '.join(extra) + ')') if extra else ''))
     for w in ctx.warnings:
         print('[WARN] ' + w)
+    if placeholders:
+        print('[INFO] 引用符なしの ${...} に入れる数値は --placeholder-value で変更できます')
     print('[INFO] 出力       : ' + output_path)
     print('[INFO] 既定の接続先: %s://%s:%s%s / X-API-KEY は -JapiKey= で上書き可' % (
         meta['protocol'], meta['host'], meta['port'], meta['base_path']))

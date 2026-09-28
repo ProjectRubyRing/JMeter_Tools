@@ -51,6 +51,10 @@
 .PARAMETER UseExamples
     example / default が定義されていればランダム値より優先します。
 
+.PARAMETER PlaceholderValue
+    値の位置に引用符なしで書かれた ${...}（後で置換するプレースホルダ。例: "timeoutInMillis": ${integration_timeout_ms}）は
+    JSON として読めないため、この数値に置き換えて読み込みます（既定: 3000）。置き換えた箇所は警告として表示します。
+
 .EXAMPLE
     .\OpenApi2Jmx.ps1 -InputFile .\openapi.json
 
@@ -74,6 +78,8 @@ param(
     [string]$AnyMethod = 'GET',
     [switch]$RequiredOnly,
     [switch]$UseExamples,
+    # 値の位置に引用符なしで書かれた ${...}（後で置換するプレースホルダ）に入れる数値の既定値
+    [string]$PlaceholderValue = '3000',
     [switch]$Help,
     [switch]$Version
 )
@@ -129,7 +135,9 @@ function Show-Usage {
                        GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS（既定: GET）
   -RequiredOnly        必須（required）のパラメータ・プロパティだけを生成する
   -UseExamples         example / default が定義されていればランダム値より優先する
-  -Help                このヘルプを表示
+  -PlaceholderValue N  値の位置に引用符なしで書かれた `${...}（後で置換するプレースホルダ）に
+                       仮に入れる数値（既定: 3000）。置き換えた箇所は警告として表示します
+  -Help               このヘルプを表示
   -Version             バージョンを表示
 
 例:
@@ -2088,7 +2096,50 @@ function ConvertFrom-JsonElementValue($el) {
     return $null
 }
 
-function Read-JsonFile([string]$Path) {
+# JSON 文字列（エスケープ込み）と ${...} を先頭から順に拾う。文字列は読み飛ばし、${...} だけを置き換える。
+# 直後が : の ${...} はキーの位置なので置き換えない（5.1 の JavaScriptSerializer は引用符なしのキーを
+# 受け付けてしまい、実装間で結果が変わるため。置き換えなければどの実装でも構文エラーになる）
+$script:PlaceholderScan = New-Object System.Text.RegularExpressions.Regex('"[^"\\]*(?:\\.[^"\\]*)*"|\$\{[^{}"\r\n]+\}(?![ \t\r\n]*:)', [System.Text.RegularExpressions.RegexOptions]::Singleline)
+$script:PlaceholderLinesShown = 10
+$script:PlaceholderCount = 0
+
+function Resolve-Placeholders([string]$Text, [string]$Value) {
+    # JSON 文字列の外に引用符なしで書かれた ${...}（後で置換するプレースホルダ）を数値 $Value に置き換える。
+    # 文字列の中の ${...}（"${stageVariables.x}" など）は正しい JSON なので変更しない。
+    # 戻り値: @{ Text = 置換後の文字列; Names = プレースホルダ（初出順）; Lines = プレースホルダ → 行番号の一覧 }
+    $names = New-Object 'System.Collections.Generic.List[string]'
+    $lines = New-Object 'System.Collections.Generic.Dictionary[string,object]' ([System.StringComparer]::Ordinal)
+    if ($Text.IndexOf('${', [System.StringComparison]::Ordinal) -lt 0) { return @{ Text = $Text; Names = $names; Lines = $lines } }
+    $sb = New-Object System.Text.StringBuilder
+    $pos = 0
+    $line = 1L
+    foreach ($m in $script:PlaceholderScan.Matches($Text)) {
+        $s = $m.Index
+        if ($Text[$s] -cne [char]'$') { continue }    # 文字列（読み飛ばすだけ）
+        $j = $Text.IndexOf([char]10, $pos)
+        while (($j -ge 0) -and ($j -lt $s)) { $line++; $j = $Text.IndexOf([char]10, $j + 1) }
+        [void]$sb.Append($Text, $pos, $s - $pos)
+        [void]$sb.Append($Value)
+        if (-not $lines.ContainsKey($m.Value)) {
+            $names.Add($m.Value)
+            $lines[$m.Value] = New-Object 'System.Collections.Generic.List[long]'
+        }
+        $lines[$m.Value].Add($line)
+        $pos = $s + $m.Length
+    }
+    [void]$sb.Append($Text, $pos, $Text.Length - $pos)
+    return @{ Text = $sb.ToString(); Names = $names; Lines = $lines }
+}
+
+function Get-PlaceholderWarning([string]$Name, $Lines, [string]$Value) {
+    $shown = New-Object 'System.Collections.Generic.List[string]'
+    for ($i = 0; ($i -lt $Lines.Count) -and ($i -lt $script:PlaceholderLinesShown); $i++) { $shown.Add($Lines[$i].ToString($script:Inv)) }
+    if ($Lines.Count -gt $script:PlaceholderLinesShown) { $more = ' ほか' } else { $more = '' }
+    return ('引用符なしのプレースホルダ ' + $Name + ' は JSON として読めないため、数値 ' + $Value + ' に置き換えて読み込みました（' +
+        $Lines.Count.ToString($script:Inv) + ' 箇所・行 ' + [string]::Join(', ', $shown) + $more + '）')
+}
+
+function Read-JsonFile([string]$Path, [string]$PlaceholderValue) {
     $bytes = [System.IO.File]::ReadAllBytes($Path)
     $strict = New-Object System.Text.UTF8Encoding($false, $true)
     try {
@@ -2104,23 +2155,28 @@ function Read-JsonFile([string]$Path) {
     } catch {
         Stop-Gen ('入力ファイルの文字コードを UTF-8 として読めません: ' + $Path)
     }
+    $ph = Resolve-Placeholders $text $PlaceholderValue
+    $text = $ph.Text
     try {
         if ($PSVersionTable.PSEdition -eq 'Core') {
             $opts = New-Object System.Text.Json.JsonDocumentOptions
             $opts.MaxDepth = 1024
             $jd = [System.Text.Json.JsonDocument]::Parse($text, $opts)
-            try { return , (ConvertFrom-JsonElementValue $jd.RootElement) } finally { $jd.Dispose() }
+            try { $doc = ConvertFrom-JsonElementValue $jd.RootElement } finally { $jd.Dispose() }
         } else {
             Add-Type -AssemblyName System.Web.Extensions
             $jss = New-Object System.Web.Script.Serialization.JavaScriptSerializer
             $jss.MaxJsonLength = [int]::MaxValue
             $jss.RecursionLimit = 1024
-            return , (ConvertFrom-JssValue ($jss.DeserializeObject($text)))
+            $doc = ConvertFrom-JssValue ($jss.DeserializeObject($text))
         }
     } catch {
         if ($_.Exception.Data.Contains('OA2J')) { throw }
         Stop-Gen ('JSON の構文エラーです（YAML 形式は未対応です）: ' + $_.Exception.Message)
     }
+    foreach ($nm in $ph.Names) { Add-Warn (Get-PlaceholderWarning $nm $ph.Lines[$nm] $PlaceholderValue) }
+    $script:PlaceholderCount = $ph.Names.Count
+    return , $doc
 }
 
 # ----------------------------------------------------------------- メイン
@@ -2155,14 +2211,15 @@ function Invoke-Main {
         $u = ([long]$buf[0] * 16777216L) + ([long]$buf[1] * 65536L) + ([long]$buf[2] * 256L) + [long]$buf[3]
         $script:SeedValue = $u % 1000000000L
     }
-    $anyM = $AnyMethod.ToUpperInvariant()
+    if (-not ($PlaceholderValue -cmatch '^-?(0|[1-9][0-9]{0,14})([.][0-9]{1,12})?\z')) { Stop-Gen ('-PlaceholderValue は JSON の数値（例: 3000、-1、2.5。整数部 15 桁・小数部 12 桁以内）で指定してください: ' + $PlaceholderValue) }
+    $anyM =$AnyMethod.ToUpperInvariant()
     if (-not (@('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS') -ccontains $anyM)) { Stop-Gen ('-AnyMethod は GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS のいずれかです: ' + $AnyMethod) }
     $script:OptRequiredOnly = [bool]$RequiredOnly
     $script:OptUseExamples = [bool]$UseExamples
     $script:OptAnyMethod = $anyM
 
     # --- 読み込みと検証
-    $doc = Read-JsonFile $inPath
+    $doc = Read-JsonFile $inPath $PlaceholderValue
     if (-not (Test-Obj $doc)) { Stop-Gen 'OpenAPI 定義のルートが JSON オブジェクトではありません' }
     $script:Doc = $doc
     if (Test-Has $doc 'swagger') { Stop-Gen 'Swagger 2.0 形式には対応していません。OpenAPI 3.0.x 形式（"openapi": "3.0.3" など）に変換してください' }
@@ -2230,6 +2287,7 @@ function Invoke-Main {
         Write-Host ('         ' + $r.Label + $tail)
     }
     foreach ($w in $script:Warnings) { Write-Host ('[WARN] ' + $w) }
+    if ($script:PlaceholderCount -gt 0) { Write-Host '[INFO] 引用符なしの ${...} に入れる数値は -PlaceholderValue で変更できます' }
     Write-Host ('[INFO] 出力       : ' + $outPath)
     Write-Host ('[INFO] 既定の接続先: {0}://{1}:{2}{3} / X-API-KEY は -JapiKey= で上書き可' -f $proto, $TargetHost, $portText, $BasePath)
     Write-Host ('[INFO] 実行例     : .\Invoke-JmxScenario.ps1 -JmxFile "{0}"' -f $outPath)
